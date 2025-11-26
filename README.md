@@ -50,3 +50,8 @@ curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-e
     }]
   }'
 ```
+
+## Authenticating with Google Cloud
+```bash
+gcloud auth application-default login
+```
