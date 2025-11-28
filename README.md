@@ -1,8 +1,7 @@
 # crispy-meme
 Experiements with OpenAI Agent SDK
 
-# Setup
-
+# LITELLM + GEMINI-2.0-FLASH-EXP
 ## Running litellm server:
 ```bash
 docker rm -f litellm || true
@@ -29,7 +28,7 @@ curl http://localhost:4000/v1/chat/completions \
   }'
 ```
 
-## litellm_config
+## litellm_config.yml
 ```yaml
 model_list:
   - model_name: gemini-flash
