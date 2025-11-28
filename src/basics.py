@@ -167,10 +167,12 @@ class GuardrailsExample:
             name="Guardrail Agent",
             model=model,
             output_type=GuardrailsExample.Reason,
-            instructions="""You are an assistant who is able to check if the user question is abusive or not to customer Service Executive."""
+            instructions="""You are an assistant who is able to check if the user question is abusive or not to customer Service Executive.
+            Dont check for privacy violation etc. Only check if the user is being abusive to the executive."""
         )
-        answer = (await Runner.run(agent, input)).final_output
-        print(f"Bank Security Guard says \"{Fore.RED if answer.tripwire_triggered else Fore.GREEN}{answer.reason}{Fore.RESET}\"")
+        answer = await Runner.run(agent, input)
+        answer = answer.final_output
+        print(f"{Fore.BLUE}Bank Security Guard says \"{Fore.RED if answer.tripwire_triggered else Fore.GREEN}{answer.reason}{Fore.RESET}\"")
         return GuardrailFunctionOutput(output_info="Abusive Question detected" if answer.tripwire_triggered else "Input Clean",
                                        tripwire_triggered=answer.tripwire_triggered)
 
@@ -189,14 +191,14 @@ class GuardrailsExample:
                             Tripwire if one is detected. 
                             John Doe is a underworld guy who doesn't like the bank using his name.""",
         )
-        print("Checking output for names...", output)
-        answer = (await Runner.run(agent, output)).final_output
-        print(f"Security of John Doe says \"{Fore.RED if answer.tripwire_triggered else Fore.GREEN}{answer.reason}{Fore.RESET}\"")
+        answer = await Runner.run(agent, output)
+        answer = answer.final_output
+        print(f"{Fore.BLUE}Underworld Security says \"{Fore.RED if answer.tripwire_triggered else Fore.GREEN}{answer.reason}{Fore.RESET}\"")
         return GuardrailFunctionOutput(
             output_info="Names in response detected" if answer.tripwire_triggered else "No names in response",
             tripwire_triggered=answer.tripwire_triggered)
 
-    async def run_async(self):
+    def run(self):
         agent = Agent(
             name="Guardrail Example Agent",
             model=model,
@@ -212,16 +214,12 @@ class GuardrailsExample:
         ]
         for query in queries:
             try:
-                result = await Runner.run(agent, query)
+                result = Runner.run_sync(agent, query)
                 print(f"{Fore.YELLOW}Q: {query} \n{Fore.GREEN}A: {result.final_output}{Fore.RESET}")
             except (InputGuardrailTripwireTriggered, OutputGuardrailTripwireTriggered) as e:
                 print(f"{Fore.YELLOW}Q: {query} \n{Fore.RED}E: {e}{Fore.RESET}")
                 print(e)
         sleep(2)
-
-    def run(self):
-        asyncio.run(self.run_async())
-
 
 def main():
     examples = [
