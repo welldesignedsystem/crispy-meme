@@ -9,10 +9,11 @@ from time import sleep
 from colorama import init, Fore, Back, Style
 import dotenv
 from typing import List
+
 from pydantic import BaseModel, Field
 from openai import OpenAI
 from agents import Agent, Runner, function_tool, RunContextWrapper, GuardrailFunctionOutput, TResponseInputItem, \
-    input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered
+    input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings
 import dotenv
 
 init(autoreset=True)
@@ -31,7 +32,7 @@ class BasicExample:
     def run(self):
         agent = Agent(name="Math Agent",
                       model=model,
-                      instructions="You are a helpful math assistant."
+                      instructions="You are a helpful geography school teacher."
                       )
         result = Runner.run_sync(agent, "What is capital of France?")
         print("Result:", result.final_output)
@@ -80,7 +81,68 @@ class FunctionToolExample:
               """
               )
         print(Runner.run_sync(agent, "Count from 3 to 7 using fingers.").final_output)
-        
+##########################################
+# Example: Tool Use
+##########################################
+class ToolUseExample:
+    @staticmethod
+    @function_tool
+    def high_severity_alert(reason: str) -> str:
+        """
+        This is a high serverity alerting tool to alert the Ship Engineer on call.
+        Examples of high severity issues: Ship is sinking, Fire in the engine room, Hull breach etc.
+        :arg
+            reason: The reason for alerting the engineer.
+        """
+        print(f"{Fore.RED}Alerting engineer: {reason} {Fore.RESET}")
+        return "Engineer alerted."
+
+    @staticmethod
+    @function_tool
+    def medium_severity_alert(reason: str) -> str:
+        """
+        This is a medium serverity alerting tool to alert the Ship Engineer on call.
+        Examples of medium severity issues: Minor water leak, Power fluctuation etc.
+        :arg
+            reason: The reason for alerting the engineer.
+        """
+        print(f"{Fore.YELLOW}Alerting engineer: {reason} {Fore.RESET}")
+        return "Engineer alerted."
+
+    @staticmethod
+    @function_tool
+    def low_severity_alert(reason: str) -> str:
+        """
+        This is a low serverity alerting tool to alert the Ship Engineer on call.
+        Examples of low severity issues: Routine maintenance, Minor system check etc.
+        :arg
+            reason: The reason for alerting the engineer.
+        """
+        print(f"{Fore.GREEN}Alerting engineer: {reason} {Fore.RESET}")
+        return "Engineer alerted."
+
+    def _run(self, tool_choice: str):
+        agent = Agent(
+            name="Ship Alerting Agent",
+            model=model,
+            tools=[self.high_severity_alert, self.medium_severity_alert, self.low_severity_alert],
+            model_settings=ModelSettings(tool_choice=tool_choice),
+            instructions="""
+                   You are a ship alerting assistant. Based on the issue described by the user,
+                   determine the severity of the issue and use the appropriate alerting tool to notify the ship engineer.
+                   """
+        )
+        print("-" * 10, f"Tool Choice: {tool_choice}", "-" * 10)
+        print(Runner.run_sync(agent,
+                              "Pressure building up in the boiler someone will have to check it in next 3 hours").final_output)
+        print(Runner.run_sync(agent, "The ship is sinking!").final_output)
+        print(Runner.run_sync(agent, "It's time for routine maintenance of the navigation system.").final_output)
+
+    def run(self):
+        # self._run("auto")
+        self._run("required")
+        # self._run("none")
+
 #########################################
 # Example:   Hand offs example          #
 #########################################
@@ -221,13 +283,20 @@ class GuardrailsExample:
                 print(e)
         sleep(2)
 
+###########################################
+#
+###########################################
+
+
+
 def main():
     examples = [
         # BasicExample,
         # PydanticExample,
         # FunctionToolExample,
         # HandOffExample,
-        GuardrailsExample
+        # GuardrailsExample
+        ToolUseExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
