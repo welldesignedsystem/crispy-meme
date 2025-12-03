@@ -43,6 +43,14 @@ class BasicExample:
 # Example:   Pydantic Model Integration #
 #########################################
 class PydanticExample:
+    """
+    Output:
+        (crispy-meme)  ai@gravionis  ~/Code/learn/crispy-meme/src   main ±  uv run basics.py
+        Running example: PydanticExample
+        country='Japan' capital='Tokyo' population=13960000 year=2023
+        Okay, I have performed a stylish print for Japan:
+        🧢ital of Japan is Tokyo,with a 👥 of 37435000 in the 📅 2024.
+    """
     class CountryCapital(BaseModel):
         country: str = Field(..., description="Name of the country")
         capital: str = Field(..., description="Capital city of the country")
