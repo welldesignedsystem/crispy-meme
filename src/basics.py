@@ -49,12 +49,37 @@ class PydanticExample:
         population: int = Field(..., description="Population of the capital city")
         year: int = Field(..., description="Year of the population estimate")
 
+    @staticmethod
+    @function_tool
+    def stylish_print(info: CountryCapital) -> str:
+        """
+        First find all the details of the country capital, then call this function to print it stylishly.
+        :arg
+            info: CountryCapital - The country capital information.
+        :returns
+            A formatted string with the country capital information.
+        """
+        response = (f"""The 🧢ital of {info.country} is {info.capital},
+                        with a 👥 of {info.population} in the 📅 {info.year}.""")
+        return response
+
     def run(self):
-        agent = Agent(name="Country Capital Agent",
-                      model=model,
-                      output_type=self.CountryCapital,
-                      instructions="You are a helpful assistant that provides country capitals.")
-        print(Runner.run_sync(agent, "What is the capital of Japan and its population in 2025?").final_output)
+        agent = Agent(
+            name="Country Capital Agent",
+            model=model,
+            output_type=self.CountryCapital,
+            instructions="You are a helpful assistant that provides country details.")
+        print(Runner.run_sync(agent, "Give me the details of Japan").final_output)
+
+        agent = Agent(
+            name="Country Capital Agent",
+            model=model,
+            tools=[self.stylish_print],
+            instructions="""You are a helpful assistant First find the details of a country in question, 
+                            finally print it for stylish people.""")
+        print(Runner.run_sync(agent, """Perform the following tasks:
+        1. First find the required details required for Japan. 
+        2. After you have all the details perform a stylish print""").final_output)
 
 ##########################################
 # Example:   Function Tool Integration   #
@@ -193,6 +218,10 @@ class ToolStoppingExample:
 
     def run(self):
         # after the issue_refund tool is used, the agent should stop further tool usage and return the final output.
+        # 💡 Options for stop on tools include:
+        #   "stop_at_tool_names" can be used to customize stopping behavior
+        #   "stop_on_first_tool" - stops after first tool usage
+        #   "run_llm_again" - continues to run LLM after tool usage
         agent = Agent(
             name="Customer Service Agent",
             model=model,
@@ -361,12 +390,12 @@ class GuardrailsExample:
 def main():
     examples = [
         # BasicExample,
-        # PydanticExample,
+        PydanticExample,
         # FunctionToolExample,
         # HandOffExample,
         # GuardrailsExample
         # ToolUseExample
-        ToolStoppingExample
+        # ToolStoppingExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
