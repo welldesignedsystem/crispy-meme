@@ -11,9 +11,10 @@ import dotenv
 from typing import List
 
 from pydantic import BaseModel, Field
-from openai import OpenAI
+from openai import OpenAI, responses
 from agents import Agent, Runner, function_tool, RunContextWrapper, GuardrailFunctionOutput, TResponseInputItem, \
-    input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings
+    input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings, \
+    StopAtTools
 import dotenv
 
 init(autoreset=True)
@@ -81,8 +82,9 @@ class FunctionToolExample:
               """
               )
         print(Runner.run_sync(agent, "Count from 3 to 7 using fingers.").final_output)
+
 ##########################################
-# Example: Tool Use
+# Example: Tool Use                      #
 ##########################################
 class ToolUseExample:
     @staticmethod
@@ -142,6 +144,11 @@ class ToolUseExample:
         # self._run("auto")
         self._run("required")
         # self._run("none")
+
+###########################################
+# Example: Tool Stopping                  #
+###########################################
+
 
 #########################################
 # Example:   Hand offs example          #
@@ -296,7 +303,8 @@ def main():
         # FunctionToolExample,
         # HandOffExample,
         # GuardrailsExample
-        ToolUseExample
+        # ToolUseExample
+        ToolStoppingExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
