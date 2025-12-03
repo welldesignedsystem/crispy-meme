@@ -148,7 +148,69 @@ class ToolUseExample:
 ###########################################
 # Example: Tool Stopping                  #
 ###########################################
+class ToolStoppingExample:
+    @staticmethod
+    @function_tool
+    def issue_refund(amount: float, reason: str) -> str:
+        """
+        Issues a refund to the customer if reason is convincing enough only and the product was returned already.
+        :arg
+            amount: The amount to be refunded.
+            reason: The reason for the refund.
+        :returns
+            A string indicating the refund status.
+        """
+        response = f"Refund of ${amount} issued for reason: {reason}"
+        print(response)
+        return response
 
+    @staticmethod
+    @function_tool
+    def dont_issue_refund(amount: float, reason: str) -> str:
+        """
+        Don't issues a refund to the customer if reason is not convincing enough or the product was not returned.
+        :arg
+            amount: The amount to be refunded.
+            reason: The reason for the refund.
+        :returns
+            A string indicating the refund status.
+        """
+        return f"Refund of ${amount} issued for reason: {reason}"
+
+    @staticmethod
+    @function_tool
+    def evaluate_customer_complaint(complaint: str) -> str:
+        """
+        Evaluates the customer complaint and decides whether to issue a refund or not.
+        :arg
+            complaint: The customer complaint.
+        :returns
+            A string indicating whether to issue a refund or not.
+        """
+        response = f"I am sorry for the inconvenience caused We will improve on the '{complaint}' next time around."
+        print(f"{Fore.LIGHTRED_EX}{response}{Fore.RESET}")
+        return response
+
+    def run(self):
+        # after the issue_refund tool is used, the agent should stop further tool usage and return the final output.
+        agent = Agent(
+            name="Customer Service Agent",
+            model=model,
+            tools=[self.issue_refund, self.evaluate_customer_complaint, self.dont_issue_refund],
+            tool_use_behavior=StopAtTools(stop_at_tool_names=["issue_refund"]),
+            instructions="""
+            You are a customer service assistant. 
+            Evaluate the customer complaint one after the other if there are multiple reasons
+            Decide one complaint at a time only if refund is to be issued or not.
+            """
+        )
+        print(f'{Fore.LIGHTMAGENTA_EX}{Runner.run_sync(agent, """
+        I am an unhappy customer. I bought a product - a fridge for $1000, but I need a refund because: 
+            1. I am in a bad mood
+            2. The product didn't match my expectation 
+            3. The product is defective and I have returned it already - as per company policy I should get refund.    
+            3. The product is broken and I have returned it already - as per company policy I should get refund.    
+            4. I am unhappy with the color""").final_output}{Fore.RESET}')
 
 #########################################
 # Example:   Hand offs example          #
