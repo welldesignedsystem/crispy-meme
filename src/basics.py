@@ -59,8 +59,7 @@ class PydanticExample:
         :returns
             A formatted string with the country capital information.
         """
-        response = (f"""The 🧢ital of {info.country} is {info.capital},
-                        with a 👥 of {info.population} in the 📅 {info.year}.""")
+        response = f"🧢ital of {info.country} is {info.capital},with a 👥 of {info.population} in the 📅 {info.year}."
         return response
 
     def run(self):
