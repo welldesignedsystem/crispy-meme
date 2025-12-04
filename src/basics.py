@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from openai import OpenAI, responses
 from agents import Agent, Runner, function_tool, RunContextWrapper, GuardrailFunctionOutput, TResponseInputItem, \
     input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings, \
-    StopAtTools, SQLiteSession
+    StopAtTools, SQLiteSession, handoff
 import dotenv
 from requests import session
 
@@ -591,7 +591,6 @@ class DynamicOrchestrationExample:
 #################################################
 # Example: Multi Agent Switching                #
 #################################################
-
 class MultiAgentSwitchingExample:
     def run(self):
         ##################from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX#########################
@@ -601,7 +600,7 @@ class MultiAgentSwitchingExample:
         # handoff function, generally named `transfer_to_<agent_name>`. Transfers between agents are handled seamlessly #
         # in the background; do not mention or draw attention to these transfers in your conversation with the user.    #
         #################################################################################################################
-        print(f"{RECOMMENDED_PROMPT_PREFIX}")
+        print(f"{RECOMMENDED_PROMPT_PREFIX}")  # Also called Handoff Prompting
         complaints_agent = Agent(
             name="Complaints Agent",
             model=model,
@@ -639,6 +638,59 @@ class MultiAgentSwitchingExample:
             #################################################################################
             last_agent = result.last_agent
 
+#####################################################
+# Example: Hierarchical Multi-Agent System          #
+#####################################################
+class HierarchicalMultiAgentExample:
+    def run(self):
+        business_analyst_agent = Agent(
+            name="Business Analyst Agent",
+            model=model,
+            instructions="You are a business analyst assistant. You gather requirements from stakeholders and communicate them to the project manager."
+        )
+        trainee_developer_agent = Agent(
+            name="Trainee Developer Agent",
+            model=model,
+            instructions="You are a trainee developer assistant. You assist the developer in completing tasks assigned by the developer."
+        )
+        developer_agent = Agent(
+            name="Developer Agent",
+            model=model,
+            instructions="You are a developer assistant. You complete tasks assigned by the team lead.",
+            handoffs=[trainee_developer_agent]
+        )
+        tester_agent = Agent(
+            name="Tester Agent",
+            model=model,
+            instructions="You are a tester assistant. You test the code developed by the developer."
+        )
+        development_team_lead_agent = Agent(
+            name="Development Team Lead Agent",
+            model=model,
+            instructions="You are a Development team lead assistant. You manage tasks assigned by the project manager and delegate them to team members.",
+            handoffs=[developer_agent]
+        )
+        testing_team_lead_agent = Agent(
+            name="Testing Team Lead Agent",
+            model=model,
+            instructions="You are a Testing team lead assistant. You manage testing tasks assigned by the project manager and delegate them to team members.",
+            handoffs=[tester_agent]
+        )
+        project_manager_agent = Agent(
+            name="Project Manager Agent",
+            model=model,
+            instructions="You are a project manager assistant. You manage tasks and delegate them to appropriate team members.",
+            handoffs=[business_analyst_agent, development_team_lead_agent, testing_team_lead_agent]
+        )
+        session = SQLiteSession("hierarchical_multi_agent_session")
+        last_agent = project_manager_agent
+        for _ in range(5):
+            question = input("You:")
+            result = Runner.run_sync(last_agent, question, session=session)
+            print(f"{Fore.GREEN}A: {result.final_output}{Fore.RESET}")
+            last_agent = result.last_agent
+
+
 def main():
     examples = [
         # BasicExample,
@@ -653,7 +705,8 @@ def main():
         # PersistentMemoryExample,
         # DeterministicOrchestrationExample,
         # DynamicOrchestrationExample,
-        MultiAgentSwitchingExample,
+        # MultiAgentSwitchingExample,
+        HierarchicalMultiAgentExample,
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
