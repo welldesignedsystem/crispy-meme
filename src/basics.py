@@ -6,6 +6,7 @@ Before you start make sure you have LiteLM running locally. Refer README for set
 import asyncio
 from time import sleep
 
+from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from colorama import init, Fore, Back, Style
 import dotenv
 from typing import List
@@ -590,12 +591,21 @@ class DynamicOrchestrationExample:
 #################################################
 # Example: Multi Agent Switching                #
 #################################################
+
 class MultiAgentSwitchingExample:
     def run(self):
+        ##################from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX#########################
+        # You are part of a multi-agent system called the Agents SDK, designed to make agent coordination and execution #
+        # easy. Agents uses two primary abstraction: **Agents** and **Handoffs**. An agent encompasses instructions and #
+        # tools and can hand off a conversation to another agent when appropriate. Handoffs are achieved by calling a   #
+        # handoff function, generally named `transfer_to_<agent_name>`. Transfers between agents are handled seamlessly #
+        # in the background; do not mention or draw attention to these transfers in your conversation with the user.    #
+        #################################################################################################################
+        print(f"{RECOMMENDED_PROMPT_PREFIX}")
         complaints_agent = Agent(
             name="Complaints Agent",
             model=model,
-            instructions="You are a customer complaints assistant for Netflix.. You handle customer complaints."
+            instructions=f"{RECOMMENDED_PROMPT_PREFIX} You are a customer complaints assistant for Netflix.. You handle customer complaints."
         )
         sales_agent = Agent(
             name="Sales Agent",
@@ -605,12 +615,12 @@ class MultiAgentSwitchingExample:
         technical_support_agent = Agent(
             name="Technical Support Agent",
             model=model,
-            instructions="You are a technical support assistant for Netflix. You handle customer technical support inquiries."
+            instructions=f"{RECOMMENDED_PROMPT_PREFIX} You are a technical support assistant for Netflix. You handle customer technical support inquiries."
         )
         general_support_agent = Agent(
             name="General Support Agent",
             model=model,
-            instructions="You are a general support assistant for Netflix. You handle general customer inquiries."
+            instructions=f"{RECOMMENDED_PROMPT_PREFIX} You are a general support assistant for Netflix. You handle general customer inquiries."
         )
         complaints_agent.handoffs = [general_support_agent, sales_agent]
         sales_agent.handoffs = [general_support_agent, complaints_agent]
@@ -621,6 +631,12 @@ class MultiAgentSwitchingExample:
             question = input("You:")
             result = Runner.run_sync(last_agent, question, session=session)
             print(f"{Fore.GREEN}A: {result.final_output}{Fore.RESET}")
+            #################################################################################
+            # IMPORTANT!                                                                    #
+            # When you call Runner.run_sync(), it returns a result object that contains:    #
+            # final_output: The text response to show the user                              #
+            # last_agent: A reference to whichever agent finished handling the request      #
+            #################################################################################
             last_agent = result.last_agent
 
 def main():
@@ -637,8 +653,7 @@ def main():
         # PersistentMemoryExample,
         # DeterministicOrchestrationExample,
         # DynamicOrchestrationExample,
-        # MultiAgentSwitchingExample,
-
+        MultiAgentSwitchingExample,
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
