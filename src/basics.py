@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from openai import OpenAI, responses
 from agents import Agent, Runner, function_tool, RunContextWrapper, GuardrailFunctionOutput, TResponseInputItem, \
     input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings, \
-    StopAtTools
+    StopAtTools, SQLiteSession
 import dotenv
 
 init(autoreset=True)
@@ -457,9 +457,9 @@ class FunctionChainingExample:
         print(f'{Runner.run_sync(agent, "Create any membership benefits email body for customer - Thomas.").final_output}')
 
 ##########################################
-# Example: Memory Integration            #
+# Example: Short term Memory             #
 ##########################################
-class MemoryExample:
+class ShortTermMemoryExample:
     def run(self):
         messages = []
         agent = Agent(
@@ -480,6 +480,24 @@ class MemoryExample:
                 case 'assistant': color = Fore.GREEN
             print(f"{color}{message['role'].upper()}: {message['content']}{Fore.RESET}")
 
+########################################
+# Example: Long Term/Persistent Memory #
+########################################
+class PersistentMemoryExample:
+    def __init__(self):
+        self.session = SQLiteSession(
+            db_path="../persistent_memory.db",
+            session_id="user_1234"
+        )
+    def run(self):
+        agent = Agent(
+            name="Persistent Memory Agent",
+            model=model,
+            instructions="You are a helpful assistant with persistent memory."
+        )
+        print(Runner.run_sync(agent, "Hello what is the capital of Antarctica?", session=self.session).final_output)
+        print(Runner.run_sync(agent, "What is its area of land?", session=self.session).final_output)
+        print(Runner.run_sync(agent, "Now tell me its population.", session=self.session).final_output)
 def main():
     examples = [
         # BasicExample,
@@ -490,7 +508,8 @@ def main():
         # ToolUseExample
         # ToolStoppingExample,
         # FunctionChainingExample,
-        MemoryExample
+        # ShortTermMemoryExample
+        PersistentMemoryExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
