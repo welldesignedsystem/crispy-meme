@@ -16,6 +16,7 @@ from agents import Agent, Runner, function_tool, RunContextWrapper, GuardrailFun
     input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings, \
     StopAtTools, SQLiteSession
 import dotenv
+from requests import session
 
 init(autoreset=True)
 dotenv.load_dotenv()
@@ -586,6 +587,42 @@ class DynamicOrchestrationExample:
                     Always counter the previous point of the other party.""", session=session).final_output)
             sleep(1)
 
+#################################################
+# Example: Multi Agent Switching                #
+#################################################
+class MultiAgentSwitchingExample:
+    def run(self):
+        complaints_agent = Agent(
+            name="Complaints Agent",
+            model=model,
+            instructions="You are a customer complaints assistant for Netflix.. You handle customer complaints."
+        )
+        sales_agent = Agent(
+            name="Sales Agent",
+            model=model,
+            instructions="You are a sales assistant for Netflix. You handle customer sales inquiries."
+        )
+        technical_support_agent = Agent(
+            name="Technical Support Agent",
+            model=model,
+            instructions="You are a technical support assistant for Netflix. You handle customer technical support inquiries."
+        )
+        general_support_agent = Agent(
+            name="General Support Agent",
+            model=model,
+            instructions="You are a general support assistant for Netflix. You handle general customer inquiries."
+        )
+        complaints_agent.handoffs = [general_support_agent, sales_agent]
+        sales_agent.handoffs = [general_support_agent, complaints_agent]
+        general_support_agent.handoffs = [complaints_agent, sales_agent, technical_support_agent]
+        last_agent = general_support_agent
+        session = SQLiteSession("first_session")
+        for _ in range(5):
+            question = input("You:")
+            result = Runner.run_sync(last_agent, question, session=session)
+            print(f"{Fore.GREEN}A: {result.final_output}{Fore.RESET}")
+            last_agent = result.last_agent
+
 def main():
     examples = [
         # BasicExample,
@@ -598,8 +635,10 @@ def main():
         # FunctionChainingExample,
         # ShortTermMemoryExample,
         # PersistentMemoryExample,
-        # DeterministicOrchestrationExample
-        DynamicOrchestrationExample
+        # DeterministicOrchestrationExample,
+        # DynamicOrchestrationExample,
+        # MultiAgentSwitchingExample,
+
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
