@@ -498,6 +498,47 @@ class PersistentMemoryExample:
         print(Runner.run_sync(agent, "Hello what is the capital of Antarctica?", session=self.session).final_output)
         print(Runner.run_sync(agent, "What is its area of land?", session=self.session).final_output)
         print(Runner.run_sync(agent, "Now tell me its population.", session=self.session).final_output)
+
+###################################
+# Example: Deterministic Approach #
+###################################
+class DeterministicExample:
+    def run(self):
+        bjp_agent = Agent(
+            name="BJP Supporter",
+            model=model,
+            instructions="""
+            You are a BJP supporter and you have to answer all questions in favor of BJP.
+            Always start with 'As a BJP supporter,' in your answers.
+            """,
+            model_settings=ModelSettings(temperature=0.0, top_p=1.0)
+        )
+        congress_agent = Agent(
+            name="Congress Supporter",
+            model=model,
+            instructions="""
+            You are a Congress supporter and you have to answer all questions in favor of Congress/INC.
+            Always start with 'As a Congress supporter,' in your answers.
+            """,
+            model_settings=ModelSettings(temperature=0.0, top_p=1.0)
+        )
+        current_agent = congress_agent
+        session = SQLiteSession(
+            db_path="../deterministic_memory.db",
+            session_id="political_debate")
+        for _ in range(6):
+            answer = Runner.run_sync(
+                current_agent,
+                """You have to justify why you are better for India and how the other party is bad. 
+                         only provide one sentence at a tim. Always counter the previous point of the other party."""
+                ,session=session).final_output
+            if current_agent == bjp_agent:
+                print(f"{Fore.LIGHTRED_EX}{answer}{Fore.RESET}")
+                current_agent = congress_agent
+            else:
+                print(f"{Fore.BLUE}{answer}{Fore.RESET}")
+                current_agent = bjp_agent
+
 def main():
     examples = [
         # BasicExample,
@@ -508,8 +549,9 @@ def main():
         # ToolUseExample
         # ToolStoppingExample,
         # FunctionChainingExample,
-        # ShortTermMemoryExample
-        PersistentMemoryExample
+        # ShortTermMemoryExample,
+        # PersistentMemoryExample,
+        DeterministicExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
