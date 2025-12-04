@@ -388,9 +388,9 @@ class GuardrailsExample:
                 print(e)
         sleep(2)
 
-###########################################
-# Example: Function Chaining              #
-###########################################
+################################################
+#  Example: Function Chaining & Agent As tool  #
+################################################
 class FunctionChainingExample:
     class CustomerDetails(BaseModel):
         id: int = Field(..., description="Unique identifier for the customer")
@@ -436,6 +436,8 @@ class FunctionChainingExample:
             Give him or her 10% discount on next purchase as a membership benefit.
             Give a very warm and friendly tone to the email."""
         )
+
+        # Agent as Tool
         email_agent_tool = email_agent.as_tool(
                        tool_name="construct_promotion_email",
                        tool_description="Constructs an email full of Emojis (atleast 50%) for promotion offer for eligible customers.")
@@ -454,6 +456,30 @@ class FunctionChainingExample:
         print(f'{Runner.run_sync(agent, "Create any membership benefits email body for customer - Daniel.").final_output}')
         print(f'{Runner.run_sync(agent, "Create any membership benefits email body for customer - Thomas.").final_output}')
 
+##########################################
+# Example: Memory Integration            #
+##########################################
+class MemoryExample:
+    def run(self):
+        messages = []
+        agent = Agent(
+            name="Memory Agent",
+            model=model,
+            instructions="You are a helpful assistant with memory."
+        )
+        messages.append({"role": "user", "content": "Hello what is the capital of Antarctica?"})
+        messages.append({"role":"assistant", "content": Runner.run_sync(agent, messages).final_output})
+        messages.append({"role": "user", "content": "What is its area of land?"})
+        messages.append({"role": "assistant", "content": Runner.run_sync(agent, messages).final_output})
+        messages.append({"role": "user", "content": "Now tell me its population."})
+        messages.append({"role": "assistant", "content": Runner.run_sync(agent, messages).final_output})
+        color = Fore.CYAN
+        for message in messages:
+            match message['role']:
+                case 'user': color = Fore.YELLOW
+                case 'assistant': color = Fore.GREEN
+            print(f"{color}{message['role'].upper()}: {message['content']}{Fore.RESET}")
+
 def main():
     examples = [
         # BasicExample,
@@ -463,7 +489,8 @@ def main():
         # GuardrailsExample
         # ToolUseExample
         # ToolStoppingExample,
-        FunctionChainingExample
+        # FunctionChainingExample,
+        MemoryExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
