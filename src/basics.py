@@ -499,10 +499,10 @@ class PersistentMemoryExample:
         print(Runner.run_sync(agent, "What is its area of land?", session=self.session).final_output)
         print(Runner.run_sync(agent, "Now tell me its population.", session=self.session).final_output)
 
-###################################
-# Example: Deterministic Approach #
-###################################
-class DeterministicExample:
+########################################
+# Example: Deterministic Orchestration #
+########################################
+class DeterministicOrchestrationExample:
     def run(self):
         bjp_agent = Agent(
             name="BJP Supporter",
@@ -539,6 +539,53 @@ class DeterministicExample:
                 print(f"{Fore.BLUE}{answer}{Fore.RESET}")
                 current_agent = bjp_agent
 
+##########################################
+# Example: Dynamic Orchestration         #
+##########################################
+class DynamicOrchestrationExample:
+    def run(self):
+        bjp_agent = Agent(
+            name="BJP Supporter",
+            model=model,
+            instructions="""
+            You are a BJP supporter and you have to answer all questions in favor of BJP.
+            Always start with 'As a BJP supporter,' in your answers.
+            """,
+            model_settings=ModelSettings(temperature=0.0, top_p=1.0)
+        )
+        congress_agent = Agent(
+            name="Congress Supporter",
+            model=model,
+            instructions="""
+            You are a Congress supporter and you have to answer all questions in favor of Congress/INC.
+            Always start with 'As a Congress supporter,' in your answers.
+            """,
+            model_settings=ModelSettings(temperature=0.0, top_p=1.0)
+        )
+        current_agent = congress_agent
+        session = SQLiteSession(
+            db_path="../dynamic_memory.db",
+            session_id="political_debate_dynamic")
+        for _ in range(4):
+            agent = Agent(
+                name="Orchestrator Agent",
+                model=model,
+                tools=[bjp_agent.as_tool(tool_name="bjp_agent_tool",
+                                          tool_description="Answers questions in favor of BJP."),
+                       congress_agent.as_tool(tool_name="congress_agent_tool",
+                                              tool_description="Answers questions in favor of Congress/INC.")],
+                instructions="""
+                You are an orchestrator agent that decides which political party agent to use based on the last response.
+                If the last response was in favor of BJP, use the congress_agent_tool next and 
+                if the last response was in favour of Congress use the bjp_agent_tool next.
+                """,
+                model_settings=ModelSettings(temperature=0.0, top_p=1.0)
+            )
+            print(Runner.run_sync(agent, """You have to have 6 conversations to and fro to justify 
+                    why you are better for India and how the other party is bad. only provide one sentence at a time.
+                    Always counter the previous point of the other party.""", session=session).final_output)
+            sleep(1)
+
 def main():
     examples = [
         # BasicExample,
@@ -551,7 +598,8 @@ def main():
         # FunctionChainingExample,
         # ShortTermMemoryExample,
         # PersistentMemoryExample,
-        DeterministicExample
+        # DeterministicOrchestrationExample
+        DynamicOrchestrationExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
