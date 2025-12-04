@@ -389,20 +389,81 @@ class GuardrailsExample:
         sleep(2)
 
 ###########################################
-#
+# Example: Function Chaining              #
 ###########################################
+class FunctionChainingExample:
+    class CustomerDetails(BaseModel):
+        id: int = Field(..., description="Unique identifier for the customer")
+        name: str = Field(..., description="Name of the customer")
+        age: int = Field(..., description="Age of the customer")
+        membership_level: str = Field(..., description="Membership level of the customer")
 
+    @staticmethod
+    @function_tool
+    def get_customer_details(customer_name: str) -> CustomerDetails:
+        """
+        Fetches customer details based on the customer name.
+        :param customer_name:
+        :return:
+        """
+        membership_level = "Gold" if customer_name.lower() == "daniel" else "Standard"
+        return FunctionChainingExample.CustomerDetails(
+            id=123,
+            name=customer_name,
+            age=50,
+            membership_level=membership_level
+        )
 
+    @staticmethod
+    @function_tool
+    def get_details_of_promotion_offer(details: CustomerDetails) -> str:
+        """
+        Sends a promotion email to the customer based on their membership level.
+        :param details:
+        :return:
+        """
+        if details.membership_level == "Gold":
+            return f"Send Customer {details} the latest offer email."
+        else:
+            return f"Customer {details} is on standard membership don't send offer email."
+
+    def run(self):
+        email_agent = Agent(
+            name="Email writing Agent",
+            model=model,
+            instructions="""You are Funny Sunny an email writing assistant of Funny Marketing Inc. 
+            Write a membership benefits email for the customer only if customer is eligible for one.
+            Give him or her 10% discount on next purchase as a membership benefit.
+            Give a very warm and friendly tone to the email."""
+        )
+        email_agent_tool = email_agent.as_tool(
+                       tool_name="construct_promotion_email",
+                       tool_description="Constructs an email full of Emojis (atleast 50%) for promotion offer for eligible customers.")
+        agent = Agent(
+            name="Research Agent",
+            model=model,
+            tools=[self.get_customer_details, self.get_details_of_promotion_offer, email_agent_tool],
+            tool_use_behavior=StopAtTools(stop_at_tool_names=["construct_promotion_email"]),
+            instructions="""
+                You are a customer service assistant. 
+                First get the customer details
+                get the Customer eligibility for membership benefits
+                finally construct the membership benefits email only if customer is eligible.
+            """
+        )
+        print(f'{Runner.run_sync(agent, "Create any membership benefits email body for customer - Daniel.").final_output}')
+        print(f'{Runner.run_sync(agent, "Create any membership benefits email body for customer - Thomas.").final_output}')
 
 def main():
     examples = [
         # BasicExample,
-        PydanticExample,
+        # PydanticExample,
         # FunctionToolExample,
         # HandOffExample,
         # GuardrailsExample
         # ToolUseExample
-        # ToolStoppingExample
+        # ToolStoppingExample,
+        FunctionChainingExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
