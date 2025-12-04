@@ -690,6 +690,30 @@ class HierarchicalMultiAgentExample:
             print(f"{Fore.GREEN}A: {result.final_output}{Fore.RESET}")
             last_agent = result.last_agent
 
+#######################################
+# Example: Swarm Systems              #
+#######################################
+class SwarmSystemExample:
+    def run(self):
+        """we are talking about a mining company, if its viable for business to start mining operations in a new location"""
+        roles = ["Environment", "Economic", "Logistics", "Safety", "Legal"]
+        agents = [Agent(
+            name=f"{role} Agent",
+            model=model,
+            instructions=f"You are a {role} expert assistant. You provide insights and analysis related to {role.lower()}."
+        ) for role in roles]
+        summarizer_agent = Agent(
+            name="Summarizer Agent",
+            model=model,
+            instructions="You are a summarizer assistant. You gather insights from various expert agents and provide a comprehensive analysis. Finally take a decision on whether its viable or not."
+        )
+        session = SQLiteSession("swarm_system_session")
+        prompt = "Is it viable for business to start mining operations in the heart of New York City? Provide detailed analysis."
+        for agent in agents:
+            response = Runner.run_sync(agent, prompt, session=session).final_output
+            print(f"{Fore.CYAN}{agent.name} {Fore.RESET} {response}")
+        combined = "\n".join([f"{agent.name}: {Runner.run_sync(agent, prompt, session=session).final_output}" for agent in agents])
+        print(f"Conclusion: {Runner.run_sync(summarizer_agent, combined, session=session).final_output}")
 
 def main():
     examples = [
@@ -706,7 +730,8 @@ def main():
         # DeterministicOrchestrationExample,
         # DynamicOrchestrationExample,
         # MultiAgentSwitchingExample,
-        HierarchicalMultiAgentExample,
+        # HierarchicalMultiAgentExample,
+        SwarmSystemExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
