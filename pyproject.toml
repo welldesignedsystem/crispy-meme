@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "colorama>=0.4.6",
     "google-auth>=2.43.0",
+    "graphviz>=0.21",
     "litellm>=1.80.5",
     "openai-agents[litellm]>=0.6.1",
 ]

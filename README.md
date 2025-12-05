@@ -54,3 +54,8 @@ curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-e
 ```bash
 gcloud auth application-default login
 ```
+
+## Install Graphviz for visualization
+```bash
+sudo apt-get install graphviz
+```
