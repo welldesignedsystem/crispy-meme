@@ -3,23 +3,24 @@ OpenAI Agent SDK with LiteLM
 Uses Gemini 2.0 Flash through LiteLM proxy
 Before you start make sure you have LiteLM running locally. Refer README for setup instructions.
 """
-import asyncio
 from dataclasses import dataclass
 from time import sleep
 
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.extensions.visualization import draw_graph
-from colorama import init, Fore, Back, Style
-import dotenv
+from colorama import init, Fore
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
-from openai import OpenAI, responses
+from openai import OpenAI
 from agents import Agent, Runner, function_tool, RunContextWrapper, GuardrailFunctionOutput, TResponseInputItem, \
     input_guardrail, InputGuardrailTripwireTriggered, output_guardrail, OutputGuardrailTripwireTriggered, ModelSettings, \
-    StopAtTools, SQLiteSession, handoff
+    StopAtTools, SQLiteSession, ToolCallItem
 import dotenv
-from requests import session
+import os
+
+# Disabled tracing because I don't want to pay a single 🪙 to OpenAI from my 💰 - I would rather pay just Gemini 👑.
+os.environ["OPENAI_AGENTS_DISABLE_TRACING"] = "1"
 
 init(autoreset=True)
 dotenv.load_dotenv()
@@ -773,6 +774,40 @@ class ContextManagementExample:
 
         print(f"{Fore.MAGENTA}{result.final_output}{Fore.RESET}")
 
+#############################################
+# Example: Unit Testing Main Runner         #
+##############################################
+class UnitTestExample:
+    @staticmethod
+    @function_tool
+    def add_numbers(a: int, b: int) -> int:
+        """
+        Adds two numbers and returns the result.
+        :arg
+            a: First number
+            b: Second number
+        :returns
+            Sum of a and b
+        """
+        return a + b
+
+    def run(self):
+        agent = Agent(
+            name="Addition Agent",
+            model=model,
+            tools=[UnitTestExample.add_numbers],
+            instructions="You are an addition assistant. You add two numbers."
+        )
+        result = Runner.run_sync(agent, "2+2=?")
+        for item in result.new_items:
+            if isinstance(item, ToolCallItem):
+                assert item.agent.tools[0].name == "add_numbers"
+                print(f"{Fore.GREEN}ToolCallItem assertions passed.{Fore.RESET}")
+                return
+        print(f"{Fore.RED}No ToolCallItem found in new items.{Fore.RESET}")
+        assert False
+
+
 def main():
     examples = [
         # BasicExample,
@@ -788,9 +823,10 @@ def main():
         # DeterministicOrchestrationExample,
         # DynamicOrchestrationExample,
         # MultiAgentSwitchingExample,
-        HierarchicalMultiAgentExample,
+        # HierarchicalMultiAgentExample,
         # SwarmSystemExample,
         # ContextManagementExample,
+        UnitTestExample
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
