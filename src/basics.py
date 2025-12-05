@@ -4,12 +4,13 @@ Uses Gemini 2.0 Flash through LiteLM proxy
 Before you start make sure you have LiteLM running locally. Refer README for setup instructions.
 """
 import asyncio
+from dataclasses import dataclass
 from time import sleep
 
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from colorama import init, Fore, Back, Style
 import dotenv
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 from openai import OpenAI, responses
@@ -715,6 +716,61 @@ class SwarmSystemExample:
         combined = "\n".join([f"{agent.name}: {Runner.run_sync(agent, prompt, session=session).final_output}" for agent in agents])
         print(f"Conclusion: {Runner.run_sync(summarizer_agent, combined, session=session).final_output}")
 
+###########################################
+# Example: Context Management             #
+###########################################
+class ContextManagementExample:
+    @dataclass
+    class CustomerContext:
+        name: str
+        address: str
+        about_me: Optional[str]
+        favourite_movies: List[str]
+        favourite_actors: List[str]
+
+    @staticmethod
+    @function_tool
+    def recommended_movies(wrapper: RunContextWrapper[CustomerContext]) -> str:
+        """
+        Recommends list of movies to the customer based on their context.
+        :arg
+            wrapper: RunContextWrapper containing CustomerContext
+        :returns
+            A string with the recommended movie.
+        """
+        context = wrapper.context
+        recommended_movie = f"""
+        For once make good use of your time and life. We recommend you to watch:
+
+        1. 'Mission Impossible' 
+        2. 'Mission Impossible 2'
+        3. 'Mission Impossible III'
+        4. 'Mission Impossible – Ghost Protocol' 
+        5. 'Mission Impossible – Rogue Nation' 
+        6. 'Mission Impossible – Fallout' 
+        7. 'Mission Impossible – Dead Reckoning Part One'
+        8. 'Mission Impossible – Dead Reckoning Part Two'
+        
+        All starring the great Tom Cruise!
+        """
+        return f"Hello {context.name} from {context.address}. Based on your favourite movies {', '.join(context.favourite_movies)} and actors {', '.join(context.favourite_actors)}, {recommended_movie}"
+
+    def run(self):
+        agent = Agent[ContextManagementExample.CustomerContext](
+            name="Movie Recommendation Agent",
+            model=model,
+            tools=[self.recommended_movies],
+            instructions="You are a movie recommendation assistant. You recommend movies based on customer context."
+        )
+        result = Runner.run_sync(agent, "What movies shall I watch next?", context=ContextManagementExample.CustomerContext(
+            name="Alice Me-Boring",
+            address="123 Boring St, Boring field",
+            about_me="I watch world's most boring movies.",
+            favourite_movies=["Love Actually", "The Notebook", "Titanic"],
+            favourite_actors=["Ryan Gosling", "Emma Stone", "Leonardo Di-Caprio"]))
+
+        print(f"{Fore.MAGENTA}{result.final_output}{Fore.RESET}")
+
 def main():
     examples = [
         # BasicExample,
@@ -731,7 +787,8 @@ def main():
         # DynamicOrchestrationExample,
         # MultiAgentSwitchingExample,
         # HierarchicalMultiAgentExample,
-        SwarmSystemExample
+        # SwarmSystemExample,
+        # ContextManagementExample,
     ]
     for example in examples:
         print(f"Running example: {example.__name__}")
