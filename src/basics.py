@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from time import sleep
 
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+from agents.extensions.visualization import draw_graph
 from colorama import init, Fore, Back, Style
 import dotenv
 from typing import List, Optional
@@ -639,9 +640,9 @@ class MultiAgentSwitchingExample:
             #################################################################################
             last_agent = result.last_agent
 
-#####################################################
-# Example: Hierarchical Multi-Agent System          #
-#####################################################
+####################################################################################
+# Example: Hierarchical Multi-Agent System and mermaid graph visualization         #
+####################################################################################
 class HierarchicalMultiAgentExample:
     def run(self):
         business_analyst_agent = Agent(
@@ -683,6 +684,7 @@ class HierarchicalMultiAgentExample:
             instructions="You are a project manager assistant. You manage tasks and delegate them to appropriate team members.",
             handoffs=[business_analyst_agent, development_team_lead_agent, testing_team_lead_agent]
         )
+        draw_graph(project_manager_agent, "hierarchical_multi_agent_graph.png")
         session = SQLiteSession("hierarchical_multi_agent_session")
         last_agent = project_manager_agent
         for _ in range(5):
@@ -786,7 +788,7 @@ def main():
         # DeterministicOrchestrationExample,
         # DynamicOrchestrationExample,
         # MultiAgentSwitchingExample,
-        # HierarchicalMultiAgentExample,
+        HierarchicalMultiAgentExample,
         # SwarmSystemExample,
         # ContextManagementExample,
     ]
